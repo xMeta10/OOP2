@@ -57,4 +57,35 @@ class CCircle:
                             self._radius * 2,
                             self._radius * 2)
 
+class CircleContainer:
+
+    def __init__(self):
+        self._items: List[CCircle] = []
+
+    def add(self, circle: CCircle):
+        self._items.append(circle)
+
+    def remove(self, index: int):
+        if 0 <= index < len(self._items):
+            del self._items[index]
+
+    def get_count(self) -> int:
+        return len(self._items)
+
+    def get_object(self, index: int) -> CCircle:
+        if 0 <= index < len(self._items):
+            return self._items[index]
+        raise IndexError("Index out of range")
+
+    def get_all_selected(self) -> List[int]:
+        return [i for i, circle in enumerate(self._items) if circle.is_selected()]
+
+    def clear_selection(self):
+        for circle in self._items:
+            circle.set_selected(False)
+
+    def __iter__(self):
+        return iter(self._items)
+
+
 
