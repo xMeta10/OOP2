@@ -164,4 +164,35 @@ class DrawingWidget(QWidget):
         super().resizeEvent(event)
         self.update()
 
+class MainWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Лабораторная работа 3")
+        self.setMinimumSize(400, 300)
+        self.resize(800, 600)
+
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.drawing_widget = DrawingWidget()
+        layout.addWidget(self.drawing_widget)
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    app.setStyle('Fusion')
+
+    window = MainWindow()
+    window.show()
+
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
 
