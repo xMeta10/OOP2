@@ -304,3 +304,118 @@ class NumberWidget(QWidget):
             self.update_value(self.current_value)
 
 
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Лабораторная работа №3 Ч2")
+        self.setMinimumSize(700, 400)
+        self.resize(800, 450)
+
+        self.model = Model()
+        self.model.data_changed.connect(self.on_model_changed)
+
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+
+        numbers_layout = QHBoxLayout()
+        numbers_layout.setSpacing(15)
+
+        min_val = self.model.get_min_value()
+        max_val = self.model.get_max_value()
+
+        self.widget_a = NumberWidget("Число A", min_val, max_val, self.model.get_a(), is_b=False)
+        self.widget_b = NumberWidget("Число B", min_val, max_val, self.model.get_b(), is_b=True)
+        self.widget_c = NumberWidget("Число C", min_val, max_val, self.model.get_c(), is_b=False)
+
+        self.widget_a.value_changed.connect(self.on_a_changed)
+        self.widget_b.value_changed.connect(self.on_b_changed)
+        self.widget_c.value_changed.connect(self.on_c_changed)
+
+        numbers_layout.addWidget(self.widget_a)
+        numbers_layout.addWidget(self.widget_b)
+        numbers_layout.addWidget(self.widget_c)
+
+        main_layout.addLayout(numbers_layout)
+
+        self.update_label = QLabel()
+        self.update_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.update_label.setStyleSheet("color: #888888; font-size: 11px; padding: 8px;")
+        main_layout.addWidget(self.update_label)
+
+        self.on_model_changed()
+        self.apply_styles()
+
+    def apply_styles(self):
+        # Глобальные стили для всего приложения (можно задать и через QApplication, но для наглядности здесь)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2b2b2b;
+            }
+            QWidget {
+                background-color: #2b2b2b;
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+            }
+            QSlider::groove:horizontal {
+                height: 6px;
+                background: #3a3a3a;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #4caf50;
+                width: 14px;
+                height: 14px;
+                margin: -4px 0;
+                border-radius: 7px;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #6ecf6e;
+                transform: scale(1.1);
+            }
+            QSlider::sub-page:horizontal {
+                background: #4caf50;
+                border-radius: 3px;
+            }
+            QSlider::add-page:horizontal {
+                background: #3a3a3a;
+                border-radius: 3px;
+            }
+            QLabel {
+                color: #e0e0e0;
+            }
+        """)
+
+        # Дополнительные стили для каждого NumberWidget (фон карточки)
+        for widget in [self.widget_a, self.widget_b, self.widget_c]:
+            widget.setStyleSheet(widget.styleSheet() + """
+                NumberWidget {
+                    background-color: #3c3f41;
+                    border-radius: 10px;
+                    padding: 10px;
+                }
+            """)
+
+    def on_a_changed(self, value: int):
+        self.model.set_a(value)
+
+    def on_b_changed(self, value: int):
+        self.model.set_b(value)
+
+    def on_c_changed(self, value: int):
+        self.model.set_c(value)
+
+    def on_model_changed(self):
+        self.widget_b.set_bounds(self.model.get_a(), self.model.get_c())
+
+        self.widget_a.update_value(self.model.get_a())
+        self.widget_b.update_value(self.model.get_b())
+        self.widget_c.update_value(self.model.get_c())
+
+    def closeEvent(self, event):
+        self.model.save()
+        event.accept()
+
+
