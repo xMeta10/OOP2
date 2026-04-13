@@ -87,5 +87,81 @@ class CircleContainer:
     def __iter__(self):
         return iter(self._items)
 
+class DrawingWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._container = CircleContainer()
+        self._ctrl_pressed = False
+        self.setMinimumSize(400, 300)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        self.setAutoFillBackground(True)
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), Qt.GlobalColor.white)
+        self.setPalette(palette)
+
+    def get_container(self) -> CircleContainer:
+        return self._container
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        visible_rect = self.rect()
+
+        for circle in self._container:
+            if circle.is_visible(visible_rect):
+                circle.draw(painter)
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            pos = event.position().toPoint()
+
+            clicked_circles = []
+            for i, circle in enumerate(self._container):
+                if circle.contains_point(pos.x(), pos.y()):
+                    clicked_circles.append(i)
+
+            if clicked_circles:
+                if self._ctrl_pressed:
+                    # Ctrl: переключение выделения
+                    for idx in clicked_circles:
+                        circle = self._container.get_object(idx)
+                        circle.set_selected(not circle.is_selected())
+                else:
+                    # Без Ctrl: выделяем кликнутые объекты, остальные снимаем
+                    self._container.clear_selection()
+                    for idx in clicked_circles:
+                        self._container.get_object(idx).set_selected(True)
+            else:
+                new_circle = CCircle(pos.x(), pos.y())
+                self._container.add(new_circle)
+
+            self.update()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key.Key_Control:
+            self._ctrl_pressed = True
+        elif event.key() == Qt.Key.Key_Delete:
+            selected_indices = self._container.get_all_selected()
+
+            for idx in reversed(selected_indices):
+                self._container.remove(idx)
+
+            self.update()
+        else:
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key.Key_Control:
+            self._ctrl_pressed = False
+        else:
+            super().keyReleaseEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent):
+        super().resizeEvent(event)
+        self.update()
 
 
