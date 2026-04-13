@@ -156,3 +156,151 @@ class Model(QObject):
             self._c = self.MAX_VALUE
 
 
+class NumberWidget(QWidget):
+    value_changed = pyqtSignal(int)
+    validation_request = pyqtSignal(int, object)  # значение, callback
+
+    def __init__(self, label: str, min_val: int, max_val: int, initial_value: int = 0, is_b: bool = False):
+        super().__init__()
+        self.current_value = initial_value
+        self.min_val = min_val
+        self.max_val = max_val
+        self.is_b = is_b
+        self.a_value = 0
+        self.c_value = 100
+
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+
+        title = QLabel(label)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-weight: bold; font-size: 14px; padding: 5px; color: #e0e0e0;")
+        layout.addWidget(title)
+
+        self.text_edit = QLineEdit()
+        self.text_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_edit.setValidator(QIntValidator(min_val, max_val))
+        self.text_edit.setText(str(initial_value))
+        self.text_edit.editingFinished.connect(self.on_editing_finished)
+        self.text_edit.textChanged.connect(self.on_text_changed)
+        layout.addWidget(self.text_edit)
+
+        self.spin_box = QSpinBox()
+        self.spin_box.setRange(min_val, max_val)
+        self.spin_box.setValue(initial_value)
+        self.spin_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_box.valueChanged.connect(self.on_spin_changed)
+        layout.addWidget(self.spin_box)
+
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setRange(min_val, max_val)
+        self.slider.setValue(initial_value)
+        self.slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider.setTickInterval(10)
+        self.slider.valueChanged.connect(self.on_slider_changed)
+        layout.addWidget(self.slider)
+
+        self.setLayout(layout)
+        self._updating = False
+
+        # Применяем стили к виджету
+        self.setStyleSheet("""
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #3a3a3a;
+                border-radius: 6px;
+                padding: 6px;
+                color: #ffffff;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #4caf50;
+            }
+            QSpinBox {
+                background-color: #1e1e1e;
+                border: 1px solid #3a3a3a;
+                border-radius: 6px;
+                padding: 4px;
+                color: #ffffff;
+                font-size: 12px;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 16px;
+                border-radius: 3px;
+                background-color: #2d2d2d;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: #4caf50;
+            }
+        """)
+
+    def set_bounds(self, a: int, c: int):
+        self.a_value = a
+        self.c_value = c
+
+    def update_value(self, value: int):
+        if self._updating:
+            return
+
+        self._updating = True
+        self.current_value = value
+        self.text_edit.setText(str(value))
+        self.spin_box.setValue(value)
+        self.slider.setValue(value)
+        self._updating = False
+
+    def on_text_changed(self, text: str):
+        if self._updating:
+            return
+        try:
+            if text and text != "-":
+                value = int(text)
+                if self.min_val <= value <= self.max_val:
+                    if self.is_b and (value < self.a_value or value > self.c_value):
+                        return
+                    self.value_changed.emit(value)
+        except ValueError:
+            pass
+
+    def on_editing_finished(self):
+        if self._updating:
+            return
+
+        try:
+            text = self.text_edit.text()
+            if not text or text == "-":
+                self.update_value(self.current_value)
+                return
+
+            value = int(text)
+            if value < self.min_val or value > self.max_val:
+                self.update_value(self.current_value)
+                return
+
+            if self.is_b and (value < self.a_value or value > self.c_value):
+                self.update_value(self.current_value)
+                return
+
+        except ValueError:
+            self.update_value(self.current_value)
+
+    def on_spin_changed(self, value: int):
+        if not self._updating:
+            if self.is_b and (value < self.a_value or value > self.c_value):
+                self.update_value(self.current_value)  # Откатываем
+                return
+            self.value_changed.emit(value)
+
+    def on_slider_changed(self, value: int):
+        if not self._updating:
+            if self.is_b and (value < self.a_value or value > self.c_value):
+                self.update_value(self.current_value)  # Откатываем
+                return
+            self.value_changed.emit(value)
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        if self.current_value != self.spin_box.value():
+            self.update_value(self.current_value)
+
+
